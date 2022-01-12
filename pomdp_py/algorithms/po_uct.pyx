@@ -256,6 +256,14 @@ cdef class POUCT(Planner):
         else:
             raise ValueError("Unexpected state; child should not be None")
 
+    # setter for max depth, which can change during game playing
+    def set_max_depth(self, max_depth):
+        self._max_depth = max_depth
+
+    # different rollout policies for different agents
+    def set_rollout_policy(self, policy):
+        self._rollout_policy = policy
+
     def clear_agent(self):
         self._agent = None  # forget about current agent so that can plan for another agent.
         self._last_num_sims = -1
