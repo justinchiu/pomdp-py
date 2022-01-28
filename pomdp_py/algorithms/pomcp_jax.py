@@ -14,15 +14,14 @@ from pomdp_py.algorithms.po_uct import VNode, RootVNode, QNode, POUCT, RandomRol
 from pomdp_py.algorithms.pomcp import VNodeParticles, RootVNodeParticles, POMCP
 
 
-def particle_reinvigoration(Particles particles,
-                              int num_particles, state_transform_func=None):
+def particle_reinvigoration(particles, num_particles, state_transform_func=None):
     """Note that particles should contain states that have already made
     the transition as a result of the real action. Therefore, they simply
     form part of the reinvigorated particles. At least maintain `num_particles`
     number of particles. If already have more, then it's ok.
     """
     # If not enough particles, introduce artificial noise to existing particles (reinvigoration)
-    cdef Particles new_particles = copy.deepcopy(particles)
+    new_particles = copy.deepcopy(particles)
     if len(new_particles) == 0:
         raise ValueError("Particle deprivation.")
 
@@ -30,7 +29,6 @@ def particle_reinvigoration(Particles particles,
         return new_particles
     
     print("Particle reinvigoration for %d particles" % (num_particles - len(new_particles)))
-    cdef State next_state    
     while len(new_particles) < num_particles:
         # need to make a copy otherwise the transform affects states in 'particles'
         next_state = copy.deepcopy(particles.random())
@@ -95,9 +93,17 @@ def sample_explicit_models(T, O, R, state, action, discount_factor=1.):
 
 class ParticlesJax(Particles):
     # represents a belief / distribution over states
-    def __init__(self, values: np.ndarray, weights: np.ndarray):
-        self.values = values
-        self.weights = weights # can be unnormalized, i.e. counts
+    def __init__(self, values: List[State], weights: np.ndarray):
+        self._values = values # used to convert from integer to State
+        self._weights = weights # can be unnormalized, i.e. counts
+
+    def add(self, particle, weight=1):
+        self._weights = self._weights.at[
+            self._values.index(particle)
+            if isinstance(particle, State)
+            else particle
+        ].add(weight)
+
 
 class PomcpJax(POMCP):
 
@@ -224,7 +230,6 @@ class PomcpJax(POMCP):
             self._expand_vnode(root, history, state=state)
             rollout_reward = self._rollout(state, history, root, depth)
             return rollout_reward
-        cdef int nsteps
         action = self._ucb(root)
         next_state, observation, reward, nsteps = sample_generative_model(self._agent, state, action)
         if nsteps == 0:
