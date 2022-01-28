@@ -98,11 +98,12 @@ class ParticlesJax(Particles):
         self._weights = weights # can be unnormalized, i.e. counts
 
     def add(self, particle, weight=1):
-        self._weights = self._weights.at[
-            self._values.index(particle)
-            if isinstance(particle, State)
-            else particle
-        ].add(weight)
+        # not sure we want to use this API
+        self._weights = self._weights.at[particle].add(weight)
+            #self._values.index(particle)
+            #if isinstance(particle, State)
+            #else particle
+        #].add(weight)
 
 
 class PomcpJax(POMCP):
