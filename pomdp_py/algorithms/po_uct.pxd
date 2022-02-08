@@ -25,11 +25,12 @@ cdef class POUCT(Planner):
     cdef float _exploration_const
     cdef ActionPrior _action_prior
     cdef RolloutPolicy _rollout_policy
-    cdef Agent _agent
+    cdef public Agent _agent
     cdef int _last_num_sims
     cdef float _last_planning_time
-    cdef bint _show_progress
+    cdef public bint _show_progress
     cdef int _pbar_update_interval
+    cdef public _num_rollouts
 
     cpdef _search(self)
     cpdef _simulate(POUCT self,
@@ -37,7 +38,7 @@ cdef class POUCT(Planner):
                     Observation observation, int depth)
 
     cpdef _expand_vnode(self, VNode vnode, tuple history, State state=*)
-    cpdef _rollout(self, State state, tuple history, VNode root, int depth)
+    cpdef _rollout(self, State state, tuple history, VNode root, int depth, int num_rollouts=*)
     cpdef Action _ucb(self, VNode root)
     cpdef tuple _sample_generative_model(self, State state, Action action)
 

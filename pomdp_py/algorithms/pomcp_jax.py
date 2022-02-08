@@ -1,8 +1,10 @@
-
+# NOT FINISHED, barely started
+ 
 import copy
 import time
 import random
 import math
+from typing import List
 
 import jax.numpy as np
 
@@ -129,6 +131,8 @@ class PomcpJax(POMCP):
                          action_prior=action_prior,
                          show_progress=show_progress,
                          pbar_update_interval=pbar_update_interval)
+        # TODO: can remove all when convert to cython
+        #self._show_progress = show_progress
 
 
     def plan(self, agent):

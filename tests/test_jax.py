@@ -2,6 +2,7 @@ import copy
 import time
 import random
 import math
+from typing import List
 
 import pomdp_py
 import pytest
@@ -63,7 +64,7 @@ def init_problem():
     tiger_problem2 = TigerProblem(
         0.15,  # observation noise
         init_true_state,
-        init_belief,
+        belief2,
     )
     planner2 = PomcpJax(
         max_depth=3, discount_factor=1,

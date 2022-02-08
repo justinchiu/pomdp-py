@@ -1,3 +1,5 @@
+# cython: profile=True
+ 
 """This algorithm is PO-UCT (Partially Observable UCT). It is
 presented in the POMCP paper :cite:`silver2010monte` as an extension to the UCT
 algorithm :cite:`kocsis2006bandit` that combines MCTS and UCB1
@@ -187,13 +189,15 @@ cdef class POUCT(Planner):
                  discount_factor=0.9, exploration_const=math.sqrt(2),
                  num_visits_init=0, value_init=0,
                  rollout_policy=RandomRollout(),
-                 action_prior=None, show_progress=False, pbar_update_interval=5):
+                 action_prior=None, show_progress=False, pbar_update_interval=5,
+                 num_rollouts=1):
         self._max_depth = max_depth
         self._planning_time = planning_time
         self._num_sims = num_sims
         if self._num_sims < 0 and self._planning_time < 0:
             self._planning_time = 1.
         self._num_visits_init = num_visits_init
+        self._num_rollouts = num_rollouts
         self._value_init = value_init
         self._rollout_policy = rollout_policy
         self._discount_factor = discount_factor
@@ -355,7 +359,7 @@ cdef class POUCT(Planner):
             if parent is not None:
                 parent[observation] = root
             self._expand_vnode(root, history, state=state)
-            rollout_reward = self._rollout(state, history, root, depth)
+            rollout_reward = self._rollout(state, history, root, depth, self._num_rollouts)
             return rollout_reward
         cdef int nsteps
         action = self._ucb(root)
@@ -378,7 +382,18 @@ cdef class POUCT(Planner):
         root[action].value = root[action].value + (total_reward - root[action].value) / (root[action].num_visits)
         return total_reward
 
-    cpdef _rollout(self, State state, tuple history, VNode root, int depth):
+    cpdef _rollout(
+        self,
+        State start_state,
+        tuple start_history,
+        VNode root,
+        int start_depth,
+        int num_rollouts = 1,
+    ):
+        cdef State state
+        cdef tuple history
+        cdef int depth
+
         cdef Action action
         cdef float discount = 1.0
         cdef float total_discounted_reward = 0
@@ -386,15 +401,20 @@ cdef class POUCT(Planner):
         cdef Observation observation
         cdef float reward
 
-        while depth < self._max_depth:
-            action = self._rollout_policy.rollout(state, history)
-            next_state, observation, reward, nsteps = sample_generative_model(self._agent, state, action)
-            history = history + ((action, observation),)
-            depth += nsteps
-            total_discounted_reward += reward * discount
-            discount *= (self._discount_factor**nsteps)
-            state = next_state
-        return total_discounted_reward
+        for i in range(num_rollouts):
+            discount = 1.0
+            state = start_state
+            history = start_history
+            depth = start_depth
+            while depth < self._max_depth:
+                action = self._rollout_policy.rollout(state, history)
+                next_state, observation, reward, nsteps = sample_generative_model(self._agent, state, action)
+                history = history + ((action, observation),)
+                depth += nsteps
+                total_discounted_reward += reward * discount
+                discount *= (self._discount_factor**nsteps)
+                state = next_state
+        return total_discounted_reward / num_rollouts
 
     cpdef Action _ucb(self, VNode root):
         """UCB1"""

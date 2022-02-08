@@ -1,3 +1,5 @@
+# cython: profile=True
+
 """
 We implement POMCP as described in the original paper
 Monte-Carlo Planning in Large POMDPs
@@ -67,18 +69,21 @@ cdef class POMCP(POUCT):
                  discount_factor=0.9, exploration_const=math.sqrt(2),
                  num_visits_init=0, value_init=0,
                  rollout_policy=RandomRollout(), action_prior=None,
-                 show_progress=False, pbar_update_interval=5):
-        super().__init__(max_depth=max_depth,
-                         planning_time=planning_time,
-                         num_sims=num_sims,
-                         discount_factor=discount_factor,
-                         exploration_const=exploration_const,
-                         num_visits_init=num_visits_init,
-                         value_init=value_init,
-                         rollout_policy=rollout_policy,
-                         action_prior=action_prior,
-                         show_progress=show_progress,
-                         pbar_update_interval=pbar_update_interval)
+                 show_progress=False, pbar_update_interval=5, num_rollouts=1):
+        super().__init__(
+            max_depth=max_depth,
+            planning_time=planning_time,
+            num_sims=num_sims,
+            discount_factor=discount_factor,
+            exploration_const=exploration_const,
+            num_visits_init=num_visits_init,
+            value_init=value_init,
+            rollout_policy=rollout_policy,
+            action_prior=action_prior,
+            show_progress=show_progress,
+            pbar_update_interval=pbar_update_interval,
+            num_rollouts = num_rollouts,
+        )
 
     @property
     def update_agent_belief(self):
