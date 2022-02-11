@@ -42,6 +42,7 @@ cdef class POUCT(Planner):
     cpdef Action _ucb(self, VNode root)
     cpdef tuple _sample_generative_model(self, State state, Action action)
 
+
 cdef class RolloutPolicy(PolicyModel):
     cpdef Action rollout(self, State state, tuple history)
 

@@ -23,8 +23,11 @@ hurt to do the belief update during MCTS, a feature
 of using particle representation.
 """
 
-from pomdp_py.framework.basics cimport Action, Agent, POMDP, State, Observation,\
-    ObservationModel, TransitionModel, GenerativeDistribution, PolicyModel
+from pomdp_py.framework.basics cimport (
+    Action, Agent, POMDP, State, Observation,
+    ObservationModel, TransitionModel, GenerativeDistribution, PolicyModel,
+    sample_generative_model,
+)
 from pomdp_py.framework.planner cimport Planner
 from pomdp_py.representations.distribution.particles cimport Particles
 from pomdp_py.representations.belief.particles cimport particle_reinvigoration
@@ -137,6 +140,39 @@ cdef class POMCP(POUCT):
         if depth == 1 and root is not None:
             root.belief.add(state)  # belief update happens as simulation goes.
         return total_reward
+
+    cpdef force_expansion(
+        POMCP self,
+        Action action,
+        Observation observation,
+        int depth=0,
+    ):
+        # SAMPLE FROM BELIEF STATE
+        cdef tuple history = self._agent.history
+        cdef VNode root = self._agent.tree
+        #if depth > self._max_depth:
+            #return 0
+        cdef State state = root.belief.random()
+        cdef int nsteps
+        next_state, _, reward, nsteps = sample_generative_model(self._agent, state, action)
+        if nsteps == 0:
+            # This indicates the provided action didn't lead to transition
+            # Perhaps the action is not allowed to be performed for the given state
+            # (for example, the state is not in the initiation set of the option,
+            # or the state is a terminal state)
+            return reward
+
+        total_reward = reward + (self._discount_factor**nsteps)*self._simulate(next_state,
+                                                                               history + ((action, observation),),
+                                                                               root[action][observation],
+                                                                               root[action],
+                                                                               observation,
+                                                                               depth+nsteps)
+        root.num_visits += 1
+        root[action].num_visits += 1
+        root[action].value = root[action].value + (total_reward - root[action].value) / (root[action].num_visits)
+        return total_reward
+
 
     def _VNode(self, agent=None, root=False, **kwargs):
         """Returns a VNode with default values; The function naming makes it clear
